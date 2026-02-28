@@ -297,7 +297,7 @@ html,body{height:100%;background:var(--bg);font-family:'DM Sans',sans-serif;colo
       <button class="btn-primary" onclick="doRegister()" id="btnRegister">Создать аккаунт</button>
     </div>
 
-    <div class="footer">Семейный бюджет · <a href="finflow-pro.html">Открыть приложение</a></div>
+    <div class="footer">Семейный бюджет · <a href="index.html">Открыть приложение</a></div>
   </div>
 
   <!-- ══ SCREEN: VERIFY EMAIL ══ -->
@@ -391,17 +391,17 @@ function pickColor(containerId, color, el){
 initColorPicker('colorPicker');
 initColorPicker('joinColorPicker');
 
-// ── Check if already logged in ──
+// ── Check if already logged in — only redirect if user explicitly logged in this session ──
 auth.onAuthStateChanged(async user => {
   if(!user) return;
-  // Check if user has an account
+  // Only auto-redirect if _autoRedirect flag is set (set after successful login)
+  if(!_autoRedirect) return;
   const snap = await db.ref('finflow_users/' + user.uid).once('value');
   if(snap.val()){
-    // Already set up — go to app
     goToApp(snap.val().accId);
   }
-  // else — wait for setup/join flow
 });
+let _autoRedirect = false;
 
 // ══════════════════════════════════════════════
 //  TAB SWITCHING
@@ -440,9 +440,13 @@ function togglePass(inputId, btn){
 function backToAuth(){ auth.signOut(); showScreen('screenAuth'); }
 
 function goToApp(accId){
-  // Pass accId to finflow-pro.html via sessionStorage
-  sessionStorage.setItem('ff_landing_acc', accId);
-  window.location.href = 'index.html';
+  _autoRedirect = false;
+  // Sign out from Firebase Auth — finflow-pro uses its own auth system
+  auth.signOut().then(() => {
+    window.location.href = 'index.html';
+  }).catch(() => {
+    window.location.href = 'index.html';
+  });
 }
 
 function firebaseErrMsg(code){
@@ -486,6 +490,7 @@ async function doLogin(){
     // Check if user account is set up
     const snap = await db.ref('finflow_users/' + user.uid).once('value');
     if(snap.val()){
+      _autoRedirect = true;
       goToApp(snap.val().accId);
     } else {
       // Invited but never set up name
@@ -627,6 +632,7 @@ async function doSetupAccount(){
       role:  'admin',
     });
 
+    _autoRedirect = true;
     goToApp(accId);
   } catch(e) {
     showErr('Ошибка: ' + e.message, 'setupErr');
@@ -692,6 +698,7 @@ async function doJoinAccount(){
     // Remove invite
     await db.ref('finflow_invites/' + invId).remove();
 
+    _autoRedirect = true;
     goToApp(inv.accId);
   } catch(e) {
     showErr('Ошибка: ' + e.message, 'joinErr');
