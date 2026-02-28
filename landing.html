@@ -369,6 +369,9 @@ firebase.initializeApp(FB_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// Sign out on every page load — user must explicitly login
+auth.signOut().catch(()=>{});
+
 const COLORS = ['#6c8dfa','#4ecca3','#ff87b2','#ffa94d','#b197fc','#ffd43b','#ff6b6b','#38bdf8','#34d399','#f472b6'];
 let _selColor = COLORS[0];
 let _joinSelColor = COLORS[0];
@@ -391,17 +394,7 @@ function pickColor(containerId, color, el){
 initColorPicker('colorPicker');
 initColorPicker('joinColorPicker');
 
-// ── Check if already logged in — only redirect if user explicitly logged in this session ──
-auth.onAuthStateChanged(async user => {
-  if(!user) return;
-  // Only auto-redirect if _autoRedirect flag is set (set after successful login)
-  if(!_autoRedirect) return;
-  const snap = await db.ref('finflow_users/' + user.uid).once('value');
-  if(snap.val()){
-    goToApp(snap.val().accId);
-  }
-});
-let _autoRedirect = false;
+// No auto-redirect — user must explicitly login each time
 
 // ══════════════════════════════════════════════
 //  TAB SWITCHING
@@ -440,11 +433,8 @@ function togglePass(inputId, btn){
 function backToAuth(){ auth.signOut(); showScreen('screenAuth'); }
 
 function goToApp(accId){
-  _autoRedirect = false;
-  // Sign out from Firebase Auth — finflow-pro uses its own auth system
-  auth.signOut().then(() => {
-    window.location.href = 'index.html';
-  }).catch(() => {
+  // Sign out from Firebase before going to app (finflow-pro has its own auth)
+  auth.signOut().finally(() => {
     window.location.href = 'index.html';
   });
 }
@@ -490,7 +480,6 @@ async function doLogin(){
     // Check if user account is set up
     const snap = await db.ref('finflow_users/' + user.uid).once('value');
     if(snap.val()){
-      _autoRedirect = true;
       goToApp(snap.val().accId);
     } else {
       // Invited but never set up name
@@ -614,11 +603,12 @@ async function doSetupAccount(){
       owner: user.uid,
       users: {
         [uid]: {
-          name:  name,
-          email: user.email,
-          role:  'admin',
-          color: _selColor,
-          uid:   user.uid,
+          name:     name,
+          email:    user.email,
+          role:     'admin',
+          color:    _selColor,
+          uid:      user.uid,
+          password: '1234',
         }
       }
     });
@@ -632,7 +622,6 @@ async function doSetupAccount(){
       role:  'admin',
     });
 
-    _autoRedirect = true;
     goToApp(accId);
   } catch(e) {
     showErr('Ошибка: ' + e.message, 'setupErr');
@@ -698,7 +687,6 @@ async function doJoinAccount(){
     // Remove invite
     await db.ref('finflow_invites/' + invId).remove();
 
-    _autoRedirect = true;
     goToApp(inv.accId);
   } catch(e) {
     showErr('Ошибка: ' + e.message, 'joinErr');

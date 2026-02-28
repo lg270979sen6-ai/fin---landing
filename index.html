@@ -2483,7 +2483,7 @@ function checkPassword(){
   // Allow local override (from showChangePassword)
   const localKey  = 'ffpro_'+_pendingAcc.accId+'_'+_pendingUser.userId+':ff_pass';
   const localPass = (()=>{ try{return localStorage.getItem(localKey);}catch(e){return null;} })();
-  const correctPass = localPass || _pendingUser.userData.password || '';
+  const correctPass = localPass || _pendingUser.userData.password || '1234';
 
   if(val === correctPass){
     const ls = document.getElementById('lockScreen');
