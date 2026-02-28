@@ -369,8 +369,7 @@ firebase.initializeApp(FB_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.database();
 
-// Sign out on every page load — user must explicitly login
-auth.signOut().catch(()=>{});
+// Note: we do NOT sign out on page load — session is needed after registration redirect
 
 const COLORS = ['#6c8dfa','#4ecca3','#ff87b2','#ffa94d','#b197fc','#ffd43b','#ff6b6b','#38bdf8','#34d399','#f472b6'];
 let _selColor = COLORS[0];
@@ -394,7 +393,18 @@ function pickColor(containerId, color, el){
 initColorPicker('colorPicker');
 initColorPicker('joinColorPicker');
 
-// No auto-redirect — user must explicitly login each time
+// Auto-redirect only if user is fully set up (has finflow_users record)
+auth.onAuthStateChanged(async user => {
+  if(!user) return;
+  try {
+    const snap = await db.ref('finflow_users/' + user.uid).once('value');
+    if(snap.val()){
+      // Already set up — go straight to app
+      window.location.href = 'index.html';
+    }
+    // else — user is in registration flow, stay on landing
+  } catch(e) {}
+});
 
 // ══════════════════════════════════════════════
 //  TAB SWITCHING
@@ -433,10 +443,8 @@ function togglePass(inputId, btn){
 function backToAuth(){ auth.signOut(); showScreen('screenAuth'); }
 
 function goToApp(accId){
-  // Sign out from Firebase before going to app (finflow-pro has its own auth)
-  auth.signOut().finally(() => {
-    window.location.href = 'index.html';
-  });
+  // Keep Firebase Auth session active — index.html needs it
+  window.location.href = 'index.html';
 }
 
 function firebaseErrMsg(code){
