@@ -664,22 +664,32 @@ async function doJoinAccount(){
   try {
     const user = auth.currentUser;
     const [invId, inv] = _pendingInvite;
+
+    // Use existing userId if migrating, or create new one
     const uid = inv.userId || ('u_' + user.uid.slice(0,8));
+    const isMigration = !!inv.userId; // existing user being migrated
 
-    // Add user to account
-    await db.ref('finflow_meta/' + inv.accId + '/users/' + uid).set({
-      name:  name,
-      email: user.email,
-      role:  inv.role || 'editor',
-      color: _joinSelColor,
-      uid:   user.uid,
-    });
+    if(isMigration){
+      // Migration: only update uid and email, preserve all other data
+      await db.ref('finflow_meta/' + inv.accId + '/users/' + uid + '/uid').set(user.uid);
+      await db.ref('finflow_meta/' + inv.accId + '/users/' + uid + '/email').set(user.email);
+    } else {
+      // New user: create full record
+      await db.ref('finflow_meta/' + inv.accId + '/users/' + uid).set({
+        name:     name,
+        email:    user.email,
+        role:     inv.role || 'editor',
+        color:    _joinSelColor,
+        uid:      user.uid,
+        password: '1234',
+      });
+    }
 
-    // Create user index
+    // Create user index — links Firebase Auth uid to account
     await db.ref('finflow_users/' + user.uid).set({
       accId:  inv.accId,
       userId: uid,
-      name:   name,
+      name:   inv.userName || name,
       email:  user.email,
       role:   inv.role || 'editor',
     });

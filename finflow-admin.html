@@ -474,6 +474,7 @@ function renderAccounts(){
           <div class="user-login">${u.login||uid}</div>
         </div>
         <span class="role-badge ${roleBadgeClass(u.role)}">${roleLabel(u.role)}</span>
+        ${u.uid ? '<span style="font-size:10px;color:var(--green);border:1px solid var(--green);border-radius:6px;padding:2px 6px;">✓ email</span>' : `<button class="btn btn-sm" style="background:rgba(78,204,163,0.15);color:var(--green);border:1px solid rgba(78,204,163,0.3)" onclick="openInviteExisting('${accId}','${uid}')">📧 Привязать</button>`}
         <button class="btn btn-secondary btn-sm" onclick="openEditUser('${accId}','${uid}')" title="Редактировать">✏️</button>
         <button class="btn btn-danger btn-sm" onclick="deleteUser('${accId}','${uid}','${(u.name||'').replace(/'/g,'')}')">🗑</button>
       </div>
@@ -499,6 +500,81 @@ function renderAccounts(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ══════════════════════════════════════
+//  INVITE EXISTING USER (migration)
+// ══════════════════════════════════════
+let _inviteAccId = null;
+let _inviteUserId = null;
+
+function openInviteExisting(accId, userId){
+  _inviteAccId  = accId;
+  _inviteUserId = userId;
+  const acc  = accounts[accId];
+  const user = acc && acc.users && acc.users[userId];
+  if(!user) return;
+
+  document.getElementById('inviteUserInfo').innerHTML =
+    `<b>${user.name||userId}</b> · ${acc.name} · ${roleLabel(user.role)}`;
+  document.getElementById('inviteEmail').value = user.email || '';
+  document.getElementById('inviteResult').textContent = '';
+  document.getElementById('btnSendInvite').disabled = false;
+  document.getElementById('btnSendInvite').textContent = 'Отправить инвайт';
+
+  const modal = document.getElementById('modalInvite');
+  modal.style.display = 'flex';
+  setTimeout(()=>{ document.getElementById('inviteEmail').focus(); }, 100);
+}
+
+async function sendInviteExisting(){
+  const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+  const res   = document.getElementById('inviteResult');
+  if(!email){ res.style.color='var(--red)'; res.textContent='Введите email'; return; }
+  if(!email.includes('@')){ res.style.color='var(--red)'; res.textContent='Неверный формат email'; return; }
+
+  const btn = document.getElementById('btnSendInvite');
+  btn.disabled = true;
+  btn.textContent = 'Создание инвайта...';
+  res.textContent = '';
+
+  const acc  = accounts[_inviteAccId];
+  const user = acc.users[_inviteUserId];
+
+  try {
+    // Save invite to Firebase — landing.html will pick it up on registration
+    const inviteId = 'inv_' + Date.now();
+    await db.ref('finflow_invites/' + inviteId).set({
+      email:    email,
+      accId:    _inviteAccId,
+      userId:   _inviteUserId,
+      role:     user.role || 'editor',
+      userName: user.name || _inviteUserId,
+      accName:  acc.name,
+      createdAt: Date.now(),
+    });
+
+    // Update user email in finflow_meta
+    await db.ref('finflow_meta/' + _inviteAccId + '/users/' + _inviteUserId + '/email').set(email);
+
+    res.style.color = 'var(--green)';
+    res.innerHTML = `✅ Инвайт создан!<br><span style="color:var(--text2);font-size:12px;">Попросите ${user.name||_inviteUserId} зарегистрироваться на landing.html с этим email — система автоматически привяжет аккаунт</span>`;
+    btn.textContent = 'Готово ✓';
+
+    // Refresh accounts
+    setTimeout(()=>{ closeModal('modalInvite'); }, 3000);
+
+  } catch(e) {
+    res.style.color = 'var(--red)';
+    res.textContent = '❌ Ошибка: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = 'Отправить инвайт';
+  }
+}
+
+function closeModal(id){
+  const m = document.getElementById(id);
+  if(m) m.style.display = 'none';
 }
 
 // ══════════════════════════════════════
@@ -663,5 +739,21 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{
 // Auto-focus on login
 window.addEventListener('load', ()=>{ document.getElementById('masterInput').focus(); });
 </script>
+<!-- INVITE EXISTING USER MODAL -->
+<div id="modalInvite" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--s1);border:1px solid var(--border2);border-radius:20px;padding:28px;width:100%;max-width:420px;">
+    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:18px;margin-bottom:6px;">📧 Привязать email к пользователю</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Пользователь зарегистрируется через landing.html и автоматически войдёт в этот аккаунт</div>
+    <div id="inviteUserInfo" style="background:var(--s2);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text2);"></div>
+    <label style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:7px;">Email пользователя</label>
+    <input id="inviteEmail" type="email" class="form-input" placeholder="user@example.com" style="margin-bottom:16px;">
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modalInvite')">Отмена</button>
+      <button class="btn btn-primary" style="flex:1" onclick="sendInviteExisting()" id="btnSendInvite">Отправить инвайт</button>
+    </div>
+    <div id="inviteResult" style="margin-top:12px;font-size:13px;text-align:center;"></div>
+  </div>
+</div>
+
 </body>
 </html>

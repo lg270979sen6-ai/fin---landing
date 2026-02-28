@@ -344,14 +344,11 @@ input,textarea,select{-webkit-user-select:text;user-select:text;}
 </style>
 </head>
 <body ontouchstart="">
-<!-- LOGIN SCREEN — Multi-Account -->
+<!-- LOGIN SCREEN — Firebase Auth -->
 <div id="lockScreen" style="display:flex;position:fixed;inset:0;z-index:9999;background:#0d0f14;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:hidden;">
 
-  <!-- Glow background -->
   <div style="position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(ellipse,rgba(108,141,250,0.12) 0%,transparent 70%);pointer-events:none;animation:glowPulse 4s ease-in-out infinite;"></div>
-  <div style="position:absolute;bottom:-10%;right:-10%;width:400px;height:400px;background:radial-gradient(ellipse,rgba(255,135,178,0.06) 0%,transparent 70%);pointer-events:none;animation:glowPulse 6s ease-in-out infinite reverse;"></div>
 
-  <!-- Logo -->
   <div style="display:flex;flex-direction:column;align-items:center;margin-bottom:36px;animation:logoIn .8s cubic-bezier(.16,1,.3,1) both;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
       <div style="width:10px;height:10px;border-radius:50%;background:#6c8dfa;animation:dotPulse 2s ease-in-out infinite;box-shadow:0 0 16px rgba(108,141,250,0.8);"></div>
@@ -360,87 +357,18 @@ input,textarea,select{-webkit-user-select:text;user-select:text;}
     <span style="font-size:12px;color:#5a6478;letter-spacing:.14em;text-transform:uppercase;font-weight:500;">Семейный бюджет</span>
   </div>
 
-  <!-- STEP 1: Account list -->
-  <div id="stepAccounts" style="width:100%;max-width:340px;animation:formIn .9s cubic-bezier(.16,1,.3,1) .12s both;">
-    <div style="font-size:11px;color:#5a6478;text-align:center;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:16px;" id="step1Label">Выберите аккаунт</div>
-    <div id="accountsList">
-      <div style="text-align:center;padding:32px 0;color:#5a6478;font-size:13px;">
-        <div style="font-size:28px;margin-bottom:10px;">⏳</div>
-        Загрузка аккаунтов...
-      </div>
+  <div style="width:100%;max-width:340px;text-align:center;animation:formIn .9s cubic-bezier(.16,1,.3,1) .12s both;">
+    <div id="authCheckMsg" style="color:#5a6478;font-size:14px;margin-bottom:24px;">
+      <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+      Проверка авторизации...
     </div>
-  </div>
-
-  <!-- STEP 2: User list (inside account) -->
-  <div id="stepUsers" style="display:none;width:100%;max-width:340px;">
-    <div onclick="goToStep(1)" style="display:flex;align-items:center;gap:6px;color:#5a6478;font-size:13px;margin-bottom:20px;cursor:pointer;width:fit-content;transition:color .15s;" onmouseover="this.style.color='#a0aabb'" onmouseout="this.style.color='#5a6478'">
-      <span style="font-size:18px;">‹</span> Назад
-    </div>
-    <div id="selectedAccBadge" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#1e2330;border-radius:14px;border:1px solid rgba(255,255,255,0.07);margin-bottom:20px;">
-      <div id="accBadgeAvatar" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:#fff;"></div>
-      <div id="accBadgeName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#fff;"></div>
-    </div>
-    <div style="font-size:11px;color:#5a6478;letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:12px;">Кто вы?</div>
-    <div id="usersList"></div>
-  </div>
-
-  <!-- STEP 3: Password entry -->
-  <div id="stepPassword" style="display:none;width:100%;max-width:340px;">
-    <div onclick="goToStep(2)" style="display:flex;align-items:center;gap:6px;color:#5a6478;font-size:13px;margin-bottom:20px;cursor:pointer;width:fit-content;transition:color .15s;" onmouseover="this.style.color='#a0aabb'" onmouseout="this.style.color='#5a6478'">
-      <span style="font-size:18px;">‹</span> Назад
-    </div>
-
-    <!-- Selected user card -->
-    <div id="selUserCard" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:#1e2330;border:1px solid rgba(255,255,255,0.07);border-radius:16px;margin-bottom:24px;">
-      <div id="selUserAvatar" style="width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#fff;flex-shrink:0;"></div>
-      <div>
-        <div id="selUserName" style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:#fff;"></div>
-        <div id="selUserMeta" style="font-size:11px;color:#5a6478;margin-top:2px;"></div>
-      </div>
-      <div style="margin-left:auto;font-size:18px;opacity:.3;">🔒</div>
-    </div>
-
-    <!-- PIN dots -->
-    <div id="pinDots" style="display:flex;justify-content:center;gap:14px;margin-bottom:16px;min-height:20px;"></div>
-
-    <!-- Password input — always visible, triggers keyboard on mobile -->
-    <div style="position:relative;margin-bottom:14px;" id="lockInputWrap">
-      <input id="lockInput" type="password" inputmode="text" maxlength="20"
-        autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')checkPassword()"
-        oninput="updatePinDots(this.value)"
-        placeholder="Введите пароль"
-        onfocus="this.parentElement.style.boxShadow='0 0 0 3px rgba(108,141,250,0.3)';this.style.borderColor='#6c8dfa';"
-        onblur="this.parentElement.style.boxShadow='none';this.style.borderColor='rgba(108,141,250,0.4)';"
-        style="width:100%;padding:16px 48px 16px 18px;background:#1e2330;border:2px solid rgba(108,141,250,0.4);border-radius:14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:16px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none;">
-      <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;opacity:.4;">🔑</span>
-    </div>
-    <!-- lockTapArea kept as empty placeholder for JS compatibility -->
-    <div id="lockTapArea" style="display:none;"></div>
-
-    <button onclick="checkPassword()"
-      style="width:100%;padding:15px;border-radius:14px;background:#6c8dfa;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 6px 24px rgba(108,141,250,.35);transition:all .15s;"
-      onmousedown="this.style.transform='scale(.97)'" onmouseup="this.style.transform=''"
-      ontouchstart="this.style.transform='scale(.97)'" ontouchend="this.style.transform=''">
-      Войти →
-    </button>
-
-    <div id="lockError" style="font-size:12px;color:#ff6b6b;text-align:center;margin-top:12px;min-height:18px;"></div>
-    <div onclick="showChangePassword()" style="font-size:11px;color:#3a4052;text-align:center;margin-top:18px;cursor:pointer;transition:color .15s;" onmouseover="this.style.color='#6c8dfa'" onmouseout="this.style.color='#3a4052'">Изменить пароль</div>
+    <a href="landing.html" id="goToLandingBtn" style="display:none;width:100%;padding:15px;border-radius:14px;background:#6c8dfa;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 6px 24px rgba(108,141,250,.35);text-decoration:none;text-align:center;">
+      Войти в FinFlow →
+    </a>
   </div>
 
 </div>
 
-<style>
-@keyframes logoIn   {from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
-@keyframes formIn   {from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none}}
-@keyframes glowPulse{0%,100%{opacity:.7;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.06)}}
-@keyframes dotPulse {0%,100%{box-shadow:0 0 10px rgba(108,141,250,.6)}50%{box-shadow:0 0 24px rgba(108,141,250,1)}}
-@keyframes pinBounce{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
-@keyframes lockShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
-@keyframes stepIn   {from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-@keyframes stepOut  {from{opacity:1}to{opacity:0;transform:translateX(-16px)}}
-</style>
 
 <!-- DESKTOP SIDEBAR -->
 <div class="sidebar-desktop" id="sidebarDesktop" style="display:none">
@@ -2328,284 +2256,79 @@ function _getMetaApp(){
   return null;
 }
 
-function loadAccounts(cb){
-  if(!window.firebase){ showAccountsError('Firebase SDK не загружен'); return; }
-
-  _metaApp = _getMetaApp();
-  if(!_metaApp){ showAccountsError('Ошибка Firebase SDK'); return; }
-
-  const doRead = () => {
-    _metaApp.database().ref(META_REF).once('value').then(snap=>{
-      _allAccounts = {};
-      const data = snap.val() || {};
-      Object.entries(data).forEach(([accId, accData])=>{
-        if(accId === '_system' || accId === '_admin') return;
-        _allAccounts[accId] = {
-          name:  accData.name  || accId,
-          color: accData.color || '#6c8dfa',
-          users: accData.users || {},
-        };
-      });
-      if(cb) cb();
-    }).catch(err=>{ showAccountsError('Ошибка загрузки: ' + err.message); });
-  };
-
-  // Try anonymous auth first; if it fails or SDK missing — read anyway (open rules fallback)
-  try{
-    const auth = _metaApp.auth();
-    if(auth.currentUser){
-      doRead();
-      return;
-    }
-    // Wait for auth state — more reliable than .then() on signInAnonymously
-    let authDone = false;
-    const unsub = auth.onAuthStateChanged(user=>{
-      if(authDone) return;
-      authDone = true;
-      unsub();
-      doRead();
-    });
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(()=> auth.signInAnonymously())
-      .catch(e=>{
-        console.warn('Anonymous auth failed:', e.message);
-        if(!authDone){ authDone=true; try{unsub();}catch(e2){} doRead(); }
-      });
-    // Safety timeout — if auth hangs for 5s, read anyway
-    setTimeout(()=>{
-      if(!authDone){ authDone=true; try{unsub();}catch(e){} doRead(); }
-    }, 5000);
-  } catch(e){
-    // No auth SDK
-    doRead();
-  }
+// ════════════════════════════════════════
+//  FIREBASE AUTH — единая точка входа
+// ════════════════════════════════════════
+function showGoToLanding(){
+  const msg = document.getElementById('authCheckMsg');
+  const btn = document.getElementById('goToLandingBtn');
+  if(msg) msg.style.display = 'none';
+  if(btn) btn.style.display = 'block';
 }
 
-function showAccountsError(msg){
-  const list = document.getElementById('accountsList');
-  if(list) list.innerHTML = `<div style="text-align:center;padding:24px;color:#ff6b6b;font-size:13px;">❌ ${msg}<br><br><span style="color:#5a6478;cursor:pointer;" onclick="loadAccounts(renderAccounts)">Повторить</span></div>`;
-}
-
-// ── Step 1: Render account list ──
-function renderAccounts(){
-  const list = document.getElementById('accountsList');
-  if(!list) return;
-  const entries = Object.entries(_allAccounts);
-  if(!entries.length){
-    list.innerHTML = `<div style="text-align:center;padding:24px;color:#5a6478;font-size:13px;">Нет доступных аккаунтов.<br>Создайте их в панели администратора.</div>`;
-    return;
-  }
-  list.innerHTML = entries.map(([accId, acc])=>`
-    <div onclick="goToStep2('${accId}')"
-      style="display:flex;align-items:center;gap:14px;background:#1e2330;border:1.5px solid rgba(255,255,255,0.07);border-radius:16px;padding:14px 18px;cursor:pointer;margin-bottom:10px;transition:all .2s;"
-      onmouseover="this.style.borderColor='rgba(255,255,255,0.2)';this.style.background='#252d3d'"
-      onmouseout="this.style.borderColor='rgba(255,255,255,0.07)';this.style.background='#1e2330'"
-      ontouchstart="this.style.background='#252d3d'" ontouchend="this.style.background='#1e2330'">
-      <div style="width:48px;height:48px;border-radius:14px;background:${acc.color};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:#fff;flex-shrink:0;box-shadow:0 4px 14px ${acc.color}44;">${acc.name[0].toUpperCase()}</div>
-      <div style="flex:1;">
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:#fff;">${acc.name}</div>
-        <div style="font-size:11px;color:#5a6478;margin-top:2px;">${Object.keys(acc.users||{}).length} пользователей</div>
-      </div>
-      <div style="font-size:18px;opacity:.25;">›</div>
-    </div>
-  `).join('');
-}
-
-// ── Step 2: Show users for selected account ──
-function goToStep2(accId){
-  _pendingAcc = { accId, accData: _allAccounts[accId] };
-  const acc = _allAccounts[accId];
-  // Update badge
-  const av = document.getElementById('accBadgeAvatar');
-  const nm = document.getElementById('accBadgeName');
-  if(av){ av.textContent=acc.name[0].toUpperCase(); av.style.background=acc.color; }
-  if(nm) nm.textContent = acc.name;
-  // Render users
-  const users = Object.entries(acc.users || {});
-  const ul = document.getElementById('usersList');
-  if(ul) ul.innerHTML = !users.length
-    ? `<div style="text-align:center;color:#5a6478;padding:20px;font-size:13px;">В аккаунте нет пользователей</div>`
-    : users.map(([uid, u])=>`
-      <div onclick="goToStep3('${uid}')"
-        style="display:flex;align-items:center;gap:12px;background:#1e2330;border:1.5px solid rgba(255,255,255,0.07);border-radius:14px;padding:12px 16px;cursor:pointer;margin-bottom:8px;transition:all .2s;"
-        onmouseover="this.style.borderColor='rgba(255,255,255,0.2)'"
-        onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'"
-        ontouchstart="this.style.background='#252d3d'" ontouchend="this.style.background='#1e2330'">
-        <div style="width:40px;height:40px;border-radius:12px;background:${u.color||'#6c8dfa'};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:#fff;flex-shrink:0;">${(u.name||uid)[0].toUpperCase()}</div>
-        <div style="flex:1;">
-          <div style="font-weight:600;color:#fff;font-size:14px;">${u.name||uid}</div>
-          <div style="font-size:11px;color:#5a6478;">${{admin:'Администратор',editor:'Редактор',viewer:'Читатель'}[u.role]||'Пользователь'}</div>
-        </div>
-        <div style="font-size:16px;opacity:.25;">›</div>
-      </div>
-    `).join('');
-  goToStep(2);
-}
-
-// ── Step 3: Show password for selected user ──
-function goToStep3(userId){
-  if(!_pendingAcc) return;
-  const u = _pendingAcc.accData.users[userId];
-  _pendingUser = { userId, userData: u };
-  // Update user card
-  const color = u.color || _pendingAcc.accData.color || '#6c8dfa';
-  const av = document.getElementById('selUserAvatar');
-  const nm = document.getElementById('selUserName');
-  const mt = document.getElementById('selUserMeta');
-  if(av){ av.textContent=(u.name||userId)[0].toUpperCase(); av.style.background=color; av.style.boxShadow=`0 4px 14px ${color}55`; }
-  if(nm) nm.textContent = u.name || userId;
-  if(mt) mt.textContent = _pendingAcc.accData.name + ' · ' + ({admin:'Администратор',editor:'Редактор',viewer:'Читатель'}[u.role]||'Пользователь');
-  document.getElementById('lockInput').value = '';
-  document.getElementById('lockError').textContent = '';
-  updatePinDots('');
-  goToStep(3);
-  // Always show input and focus — works on both mobile and desktop
-  document.getElementById('lockInputWrap').style.display = 'block';
-  document.getElementById('lockTapArea').style.display   = 'none';
-  // Slight delay so the step transition completes before focusing
-  setTimeout(()=>{ try{ document.getElementById('lockInput').focus(); }catch(e){} }, 150);
-}
-
-// ── Step navigation ──
-function goToStep(n){
-  document.getElementById('stepAccounts').style.display = n===1 ? 'block' : 'none';
-  document.getElementById('stepUsers').style.display    = n===2 ? 'block' : 'none';
-  document.getElementById('stepPassword').style.display = n===3 ? 'block' : 'none';
-}
-
-// ── Password check ──
-function checkPassword(){
-  const input = document.getElementById('lockInput');
-  const val   = input.value;
-  if(!val){ document.getElementById('lockError').textContent = 'Введите пароль'; return; }
-  if(!_pendingUser){ document.getElementById('lockError').textContent = 'Выберите пользователя'; return; }
-
-  // Allow local override (from showChangePassword)
-  const localKey  = 'ffpro_'+_pendingAcc.accId+'_'+_pendingUser.userId+':ff_pass';
-  const localPass = (()=>{ try{return localStorage.getItem(localKey);}catch(e){return null;} })();
-  const correctPass = localPass || _pendingUser.userData.password || '1234';
-
-  if(val === correctPass){
-    const ls = document.getElementById('lockScreen');
-    ls.style.transition = 'opacity .4s';
-    ls.style.opacity = '0';
-    setTimeout(()=>{
-      ls.style.display='none'; ls.style.opacity=''; ls.style.transition='';
-      startApp(_pendingAcc.accId, _pendingUser.userId, _pendingAcc.accData, _pendingUser.userData);
-    }, 350);
-  } else {
-    input.value = '';
-    updatePinDots('');
-    document.getElementById('lockError').textContent = '❌ Неверный пароль';
-    const step = document.getElementById('stepPassword');
-    step.style.animation = 'lockShake .35s ease';
-    setTimeout(()=>{ step.style.animation=''; document.getElementById('lockError').textContent=''; }, 2000);
-  }
-}
-
-function updatePinDots(val){
-  const dots = document.getElementById('pinDots');
-  if(!dots) return;
-  const len = val.length;
-  if(len===0){ dots.innerHTML=''; return; }
-  const color = _pendingUser?.userData?.color || _pendingAcc?.accData?.color || '#6c8dfa';
-  dots.innerHTML = Array.from({length:len}).map((_,i)=>
-    `<div style="width:12px;height:12px;border-radius:50%;background:${color};animation:pinBounce .25s ease ${i===len-1?'0s':'none'} both;box-shadow:0 0 8px ${color}88;"></div>`
-  ).join('');
-  document.getElementById('lockError').textContent='';
-}
-
-function showChangePassword(){
-  if(!_session.accId){ alert('Сначала войдите'); return; }
-  const localKey = STORE_PREFIX+'ff_pass';
-  const localPass = (()=>{ try{return localStorage.getItem(localKey);}catch(e){return null;} })();
-  const curPass = localPass || _session.userData.password || '';
-  const cur = prompt(`Текущий пароль (${_session.userData.name||_session.userId}):`);
-  if(cur !== curPass){ alert('Неверный пароль'); return; }
-  const np1 = prompt('Новый пароль (минимум 3 символа):');
-  if(!np1||np1.length<3){ alert('Минимум 3 символа'); return; }
-  const np2 = prompt('Повторите:');
-  if(np1!==np2){ alert('Пароли не совпадают'); return; }
-  store.set('ff_pass', np1);
-  alert('✅ Пароль изменён! (хранится локально на этом устройстве)');
-}
-
-// ── Session check on startup ──
 function checkSession(){
-  const savedAcc  = (()=>{ try{return sessionStorage.getItem('ffpro_active_acc');}catch(e){return null;} })();
-  const savedUser = (()=>{ try{return sessionStorage.getItem('ffpro_active_user');}catch(e){return null;} })();
+  const msg = document.getElementById('authCheckMsg');
+  if(msg) msg.innerHTML = '<div style="font-size:32px;margin-bottom:12px;">⏳</div>Проверка авторизации...';
 
-  if(savedAcc && savedUser){
-    const pfx  = 'ffpro_'+savedAcc+'_'+savedUser+':';
-    const sess = (()=>{ try{return localStorage.getItem(pfx+'sess');}catch(e){return null;} })();
-    const ver  = (()=>{ try{return localStorage.getItem(pfx+'sess_ver');}catch(e){return null;} })();
-    if(ver===APP_VER && sess && sess!=='0'){
-      const age = Date.now() - parseInt(sess);
-      if(age < 24*60*60*1000){
-        // Valid session — but we need account data from Firebase first
-        loadAccounts(()=>{
-          const accData = _allAccounts[savedAcc];
-          if(accData && accData.users && accData.users[savedUser]){
-            const userData = accData.users[savedUser];
-            const ls = document.getElementById('lockScreen');
-            if(ls) ls.style.display='none';
-            startApp(savedAcc, savedUser, accData, userData);
-          } else {
-            // Account/user no longer exists — show login
-            showLoginScreen();
-          }
-        });
-        return true;
-      }
+  if(!window.firebase){ showGoToLanding(); return; }
+
+  const authApp = _getMetaApp();
+  if(!authApp){ showGoToLanding(); return; }
+
+  const auth = authApp.auth();
+  let _done = false;
+
+  const unsub = auth.onAuthStateChanged(async user => {
+    if(_done) return; _done = true;
+    try{ unsub(); } catch(e){}
+
+    if(!user){ showGoToLanding(); return; }
+
+    try {
+      const db = authApp.database();
+      const snap = await db.ref('finflow_users/' + user.uid).once('value');
+      const userIndex = snap.val();
+
+      if(!userIndex || !userIndex.accId){ await auth.signOut(); showGoToLanding(); return; }
+
+      const accSnap  = await db.ref('finflow_meta/' + userIndex.accId).once('value');
+      const accData  = accSnap.val();
+      if(!accData){ await auth.signOut(); showGoToLanding(); return; }
+
+      const userId   = userIndex.userId;
+      const userData = accData.users && accData.users[userId];
+      if(!userData){ await auth.signOut(); showGoToLanding(); return; }
+
+      // Success — hide lock screen and start app
+      const ls = document.getElementById('lockScreen');
+      if(ls){ ls.style.transition='opacity .4s'; ls.style.opacity='0';
+        setTimeout(()=>{ ls.style.display='none'; ls.style.opacity=''; ls.style.transition=''; }, 400); }
+      startApp(userIndex.accId, userId, accData, userData);
+
+    } catch(e) {
+      console.error('Auth check error:', e.message);
+      showGoToLanding();
     }
-  }
-  showLoginScreen();
-  return false;
-}
+  });
 
-function showLoginScreen(){
-  const ls = document.getElementById('lockScreen');
-  if(ls) ls.style.display='flex';
-  loadAccounts(renderAccounts);
+  setTimeout(()=>{ if(!_done){ _done=true; try{unsub();}catch(e){} showGoToLanding(); } }, 8000);
 }
 
 function lockApp(){
-  // Clear session
-  if(_session.accId && _session.userId){
-    try{ sessionStorage.setItem('ffpro_active_acc',''); }catch(e){}
-    try{ sessionStorage.setItem('ffpro_active_user',''); }catch(e){}
-    try{ localStorage.setItem(STORE_PREFIX+'sess','0'); }catch(e){}
-  }
-  // Disconnect Firebase
+  try{ firebase.app().auth().signOut(); } catch(e){}
   if(fbRef){ try{fbRef.off();}catch(e){} fbRef=null; }
   fbConnected=false;
-
-  // Reset state
   allExpenses=[]; budgets={}; cfg={};
   _session={accId:null,userId:null,userData:null,accData:null};
   _pendingAcc=null; _pendingUser=null;
   STORE_PREFIX='ff_none:';
   USERS={}; CATS=JSON.parse(JSON.stringify(DEFAULT_CATS));
-
-  // Clear user switcher
-  const sw=document.getElementById('userSwitcher');
-  if(sw) sw.innerHTML='';
-
-  // Remove user badge
-  const badge = document.getElementById('userBadge');
-  if(badge) badge.remove();
-
-  // Show login
-  goToStep(1);
-  showLoginScreen();
-  const ls = document.getElementById('lockScreen');
-  ls.style.opacity='0'; ls.style.display='flex';
-  requestAnimationFrame(()=>{ ls.style.transition='opacity .3s'; ls.style.opacity='1'; });
-  setTimeout(()=>{ ls.style.transition=''; }, 350);
+  const sw=document.getElementById('userSwitcher'); if(sw) sw.innerHTML='';
+  const badge=document.getElementById('userBadge'); if(badge) badge.remove();
+  window.location.href = 'landing.html';
 }
 
 // ── STARTUP ──
-// iOS touch fix
 document.querySelectorAll('[onclick]').forEach(el=>{
   if(el.tagName!=='BUTTON'&&el.tagName!=='A'&&el.tagName!=='INPUT'){
     el.setAttribute('role','button'); el.setAttribute('tabindex','0');
@@ -2620,11 +2343,8 @@ const _mo = new MutationObserver(muts=>{
 });
 _mo.observe(document.body,{childList:true,subtree:true});
 
-// Check session / show login
 document.addEventListener('DOMContentLoaded', function(){ checkSession(); });
 if(document.readyState !== 'loading') checkSession();
-// Note: initEmojiPicker, renderCalendar etc. are called inside startApp()
-
 </script><!-- EDIT CATEGORY MODAL -->
 <div class="modal-overlay" id="editCatModal">
   <div class="modal">
