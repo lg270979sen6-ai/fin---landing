@@ -2282,24 +2282,31 @@ function checkSession(){
     if(_done) return; _done = true;
     try{ unsub(); } catch(e){}
 
-    if(!user){ showGoToLanding(); return; }
+    console.log('Auth state:', user ? 'logged in as ' + user.uid : 'not logged in');
+
+    if(!user){ console.log('No user → landing'); showGoToLanding(); return; }
 
     try {
       const db = authApp.database();
+      console.log('Reading finflow_users/' + user.uid);
       const snap = await db.ref('finflow_users/' + user.uid).once('value');
       const userIndex = snap.val();
+      console.log('finflow_users data:', JSON.stringify(userIndex));
 
-      if(!userIndex || !userIndex.accId){ await auth.signOut(); showGoToLanding(); return; }
+      if(!userIndex || !userIndex.accId){ console.log('No userIndex → landing'); await auth.signOut(); showGoToLanding(); return; }
 
       const accSnap  = await db.ref('finflow_meta/' + userIndex.accId).once('value');
       const accData  = accSnap.val();
+      console.log('accData:', accData ? 'found' : 'null');
       if(!accData){ await auth.signOut(); showGoToLanding(); return; }
 
       const userId   = userIndex.userId;
       const userData = accData.users && accData.users[userId];
+      console.log('userId:', userId, 'userData:', userData ? 'found' : 'null');
       if(!userData){ await auth.signOut(); showGoToLanding(); return; }
 
       // Success — hide lock screen and start app
+      console.log('✅ Auth OK — starting app');
       const ls = document.getElementById('lockScreen');
       if(ls){ ls.style.transition='opacity .4s'; ls.style.opacity='0';
         setTimeout(()=>{ ls.style.display='none'; ls.style.opacity=''; ls.style.transition=''; }, 400); }
@@ -2311,7 +2318,7 @@ function checkSession(){
     }
   });
 
-  setTimeout(()=>{ if(!_done){ _done=true; try{unsub();}catch(e){} showGoToLanding(); } }, 8000);
+  setTimeout(()=>{ if(!_done){ _done=true; try{unsub();}catch(e){} console.log('Timeout → landing'); showGoToLanding(); } }, 8000);
 }
 
 function lockApp(){
