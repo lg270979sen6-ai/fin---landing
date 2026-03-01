@@ -911,7 +911,7 @@ function startApp(accId, userId, accData, userData){
   // Build USERS from account's user list
   USERS = {};
   Object.entries(accData.users || {}).forEach(([uid, u])=>{
-    USERS[uid] = { name: u.name || uid, color: u.color || '#6c8dfa' };
+    USERS[uid] = { name: u.name || uid, color: u.color || '#6c8dfa', role: u.role || 'editor', email: u.email || '', uid: u.uid || '' };
   });
   // Ensure at least 2 CSS user vars
   const userIds = Object.keys(USERS);
