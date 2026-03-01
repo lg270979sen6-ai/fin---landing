@@ -835,6 +835,14 @@ const FB_CONFIG = {
 const FB_URL_PRO = FB_CONFIG.databaseURL;
 const META_REF    = 'finflow_meta'; // where admin panel stores accounts/users
 
+// Initialize default Firebase app immediately — needed for Auth session sharing with landing.html
+(function(){
+  try{ firebase.app(); } // already initialized — do nothing
+  catch(e){
+    try{ firebase.initializeApp(FB_CONFIG); } catch(e2){}
+  }
+})();
+
 // ════════════════════════════════════════
 //  SESSION STATE
 // ════════════════════════════════════════

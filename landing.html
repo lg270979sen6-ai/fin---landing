@@ -369,6 +369,9 @@ firebase.initializeApp(FB_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// Persist auth session in localStorage so index.html can read it
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+
 // Note: we do NOT sign out on page load — session is needed after registration redirect
 
 const COLORS = ['#6c8dfa','#4ecca3','#ff87b2','#ffa94d','#b197fc','#ffd43b','#ff6b6b','#38bdf8','#34d399','#f472b6'];
