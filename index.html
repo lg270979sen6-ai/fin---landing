@@ -2303,9 +2303,8 @@ function checkSession(){
     if(!user){ console.log('No user → landing'); showGoToLanding(); return; }
 
     try {
-      // Use ff_meta for database reads, default app only for auth
-      const metaApp = _getMetaApp();
-      const db = metaApp.database();
+      // Use authApp (default) for ALL reads — it has the correct user token
+      const db = authApp.database();
       console.log('Reading finflow_users/' + user.uid);
       const snap = await db.ref('finflow_users/' + user.uid).once('value');
       const userIndex = snap.val();
