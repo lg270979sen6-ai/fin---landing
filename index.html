@@ -1026,13 +1026,13 @@ function initFirebase(url, room){
   // Reuse ff_meta app — it's already authenticated anonymously by loadAccounts
   // This avoids creating a new app that needs to re-authenticate
   try{ fbApp = firebase.app('ff_meta'); }catch(e){
-    // ff_meta not available — create fresh app with full config
-    try{
-      firebase.apps.slice().forEach(a=>{ try{a.delete();}catch(e){} });
-    }catch(e){}
-    const fbCfg = url === FB_URL_PRO ? FB_CONFIG : {databaseURL: url};
-    try{ fbApp = firebase.initializeApp(fbCfg); }
-    catch(e){ fbApp = firebase.app(); }
+    // ff_meta not available — create it without deleting default app (keeps Auth session)
+    const fbCfg = url === FB_URL_PRO ? FB_CONFIG : Object.assign({}, FB_CONFIG, {databaseURL: url});
+    try{ fbApp = firebase.initializeApp(fbCfg, 'ff_meta'); }
+    catch(e2){
+      try{ fbApp = firebase.app('ff_meta'); }
+      catch(e3){ fbApp = firebase.app(); }
+    }
   }
   fbDb = fbApp.database();
   fbRoom = room;
@@ -2272,8 +2272,17 @@ function checkSession(){
 
   if(!window.firebase){ showGoToLanding(); return; }
 
-  const authApp = _getMetaApp();
-  if(!authApp){ showGoToLanding(); return; }
+  // Auth must use DEFAULT app — same as landing.html
+  let authApp;
+  try {
+    authApp = firebase.app(); // reuse existing default app
+  } catch(e) {
+    try { authApp = firebase.initializeApp(FB_CONFIG); } // init if not exists
+    catch(e2) {
+      try { authApp = firebase.app(); } // already initialized
+      catch(e3) { showGoToLanding(); return; }
+    }
+  }
 
   const auth = authApp.auth();
   let _done = false;
@@ -2323,6 +2332,7 @@ function checkSession(){
 
 function lockApp(){
   try{ firebase.app().auth().signOut(); } catch(e){}
+  try{ firebase.app('ff_meta').auth().signOut(); } catch(e){}
   if(fbRef){ try{fbRef.off();}catch(e){} fbRef=null; }
   fbConnected=false;
   allExpenses=[]; budgets={}; cfg={};
