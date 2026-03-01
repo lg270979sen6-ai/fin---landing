@@ -837,8 +837,10 @@ const META_REF    = 'finflow_meta'; // where admin panel stores accounts/users
 
 // Initialize default Firebase app immediately — needed for Auth session sharing with landing.html
 (function(){
-  try{ firebase.app(); } // already initialized — do nothing
-  catch(e){
+  try{
+    const app = firebase.app();
+    // Make sure it has database configured
+  } catch(e){
     try{ firebase.initializeApp(FB_CONFIG); } catch(e2){}
   }
 })();
@@ -2282,14 +2284,14 @@ function checkSession(){
   // Auth must use DEFAULT app — same as landing.html
   let authApp;
   try {
-    authApp = firebase.app(); // reuse existing default app
+    authApp = firebase.app();
+    console.log('Default app options:', JSON.stringify(authApp.options));
   } catch(e) {
-    try { authApp = firebase.initializeApp(FB_CONFIG); } // init if not exists
-    catch(e2) {
-      try { authApp = firebase.app(); } // already initialized
-      catch(e3) { showGoToLanding(); return; }
-    }
+    console.log('No default app, creating with FB_CONFIG');
+    try { authApp = firebase.initializeApp(FB_CONFIG); }
+    catch(e2) { try { authApp = firebase.app(); } catch(e3) { showGoToLanding(); return; } }
   }
+  console.log('authApp name:', authApp.name, 'databaseURL:', authApp.options.databaseURL);
 
   const auth = authApp.auth();
   let _done = false;
