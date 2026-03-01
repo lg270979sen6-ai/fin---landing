@@ -1985,21 +1985,150 @@ function renderSettingsUI(){
 function renderUserSettings(){
   const el=document.getElementById('userSettingsList');
   if(!el) return;
-  el.innerHTML=Object.entries(USERS).map(([uid,u])=>`
-    <div style="background:var(--surface2);border-radius:12px;border:1px solid var(--border);padding:14px;margin-bottom:10px">
+  const isAdmin = _session.userData && _session.userData.role === 'admin';
+  const myUid   = _session.userId;
+
+  // Current user settings (always visible)
+  const myUser = USERS[myUid];
+  let html = '';
+
+  if(myUser){
+    html += `<div style="background:var(--surface2);border-radius:12px;border:1px solid var(--border);padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:12px;">Мой профиль</div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="width:32px;height:32px;border-radius:9px;background:${u.color};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white" id="uAv-${uid}">${u.name[0]}</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:${u.color}" id="uLabel-${uid}">${u.name}</div>
-      </div>
-      <div class="form-group"><label class="form-label">Имя</label><input class="form-input" id="uname_${uid}" value="${u.name}" placeholder="Имя" oninput="previewUserCard('${uid}')"></div>
-      <div class="form-group" style="margin-bottom:8px"><label class="form-label">Цвет</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="color" class="cp2" id="ucolor_${uid}" value="${u.color}" oninput="previewUserCard('${uid}')" style="width:46px;height:46px;border-radius:10px;">
-          <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1">${PALETTE_COLORS.slice(0,10).map(c=>`<div style="width:26px;height:26px;background:${c};border-radius:6px;cursor:pointer;border:2px solid transparent" onclick="quickSetUserColor('${uid}','${c}')"></div>`).join('')}</div>
+        <div style="width:32px;height:32px;border-radius:9px;background:${myUser.color};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:white" id="uAv-${myUid}">${myUser.name[0]}</div>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:14px;color:${myUser.color}" id="uLabel-${myUid}">${myUser.name}</div>
+          <div style="font-size:11px;color:var(--text3)">${myUser.email||''}</div>
         </div>
       </div>
-      <button class="btn btn-primary" style="font-size:13px;padding:11px" onclick="saveUserSettings('${uid}')">✅ Сохранить</button>
-    </div>`).join('');
+      <div class="form-group"><label class="form-label">Имя</label><input class="form-input" id="uname_${myUid}" value="${myUser.name}" placeholder="Имя" oninput="previewUserCard('${myUid}')"></div>
+      <div class="form-group" style="margin-bottom:8px"><label class="form-label">Цвет</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" class="cp2" id="ucolor_${myUid}" value="${myUser.color}" oninput="previewUserCard('${myUid}')" style="width:46px;height:46px;border-radius:10px;">
+          <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1">${PALETTE_COLORS.slice(0,10).map(c=>`<div style="width:26px;height:26px;background:${c};border-radius:6px;cursor:pointer;border:2px solid transparent" onclick="quickSetUserColor('${myUid}','${c}')"></div>`).join('')}</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="font-size:13px;padding:11px" onclick="saveUserSettings('${myUid}')">✅ Сохранить</button>
+    </div>`;
+  }
+
+  // Admin: show all users + invite + delete
+  if(isAdmin){
+    html += `<div style="font-size:11px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:12px;margin-top:4px;">Участники аккаунта</div>`;
+
+    Object.entries(USERS).forEach(([uid, u]) => {
+      const roleLabel = {admin:'Администратор', editor:'Редактор', viewer:'Читатель'}[u.role] || u.role;
+      const roleColor = {admin:'var(--accent)', editor:'var(--green)', viewer:'var(--text3)'}[u.role] || 'var(--text3)';
+      const isMe = uid === myUid;
+      html += `<div style="background:var(--surface2);border-radius:12px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:${u.color};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;color:white;flex-shrink:0;">${(u.name||'?')[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:14px;">${u.name}${isMe?' <span style="font-size:10px;color:var(--text3)">(вы)</span>':''}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px;">${u.email||'email не привязан'}</div>
+        </div>
+        <span style="font-size:11px;font-weight:600;color:${roleColor};background:${roleColor}22;border-radius:6px;padding:3px 8px;flex-shrink:0;">${roleLabel}</span>
+        ${!isMe ? `<button onclick="deleteUserFromAccount('${uid}')" style="width:28px;height:28px;border-radius:8px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);color:var(--red);font-size:14px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">🗑</button>` : ''}
+      </div>`;
+    });
+
+    // Invite button
+    html += `<button onclick="openInviteUser()" style="width:100%;padding:12px;border-radius:12px;background:rgba(108,141,250,0.1);border:1.5px dashed rgba(108,141,250,0.3);color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;transition:all .2s;" onmouseover="this.style.background='rgba(108,141,250,0.18)'" onmouseout="this.style.background='rgba(108,141,250,0.1)'">
+      ＋ Пригласить пользователя
+    </button>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ── Invite user (admin only) ──
+function openInviteUser(){
+  const modal = document.getElementById('inviteUserModal');
+  if(!modal){ createInviteModal(); }
+  document.getElementById('inviteUserModal').style.display='flex';
+  document.getElementById('inviteUserEmail').value='';
+  document.getElementById('inviteUserRole').value='editor';
+  document.getElementById('inviteUserResult').textContent='';
+}
+
+function createInviteModal(){
+  const div = document.createElement('div');
+  div.id = 'inviteUserModal';
+  div.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:20px;';
+  div.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;width:100%;max-width:380px;">
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:6px;">📧 Пригласить пользователя</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:20px;">Пользователь получит инвайт и войдёт в этот аккаунт при регистрации</div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="inviteUserEmail" type="email" placeholder="user@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Роль</label>
+        <select class="form-input" id="inviteUserRole" style="cursor:pointer">
+          <option value="admin">Администратор</option>
+          <option value="editor" selected>Редактор</option>
+          <option value="viewer">Читатель</option>
+        </select>
+      </div>
+      <div id="inviteUserResult" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="document.getElementById('inviteUserModal').style.display='none'" style="flex:1;padding:12px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;">Отмена</button>
+        <button onclick="sendInviteUser()" id="btnInviteUser" style="flex:1;padding:12px;border-radius:12px;background:var(--accent);border:none;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;">Отправить</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+async function sendInviteUser(){
+  const email = document.getElementById('inviteUserEmail').value.trim().toLowerCase();
+  const role  = document.getElementById('inviteUserRole').value;
+  const res   = document.getElementById('inviteUserResult');
+  if(!email || !email.includes('@')){ res.style.color='var(--red)'; res.textContent='Введите корректный email'; return; }
+
+  const btn = document.getElementById('btnInviteUser');
+  btn.disabled = true; btn.textContent = 'Отправка...';
+  res.textContent = '';
+
+  try {
+    const metaApp = _getMetaApp();
+    const inviteId = 'inv_' + Date.now();
+    await metaApp.database().ref('finflow_invites/' + inviteId).set({
+      email:    email,
+      accId:    _session.accId,
+      role:     role,
+      accName:  _session.accData.name || _session.accId,
+      createdAt: Date.now(),
+    });
+    res.style.color = 'var(--green)';
+    res.textContent = '✅ Инвайт создан! Попросите пользователя зарегистрироваться на landing.html с этим email.';
+    btn.textContent = 'Готово ✓';
+    setTimeout(()=>{ document.getElementById('inviteUserModal').style.display='none'; }, 2500);
+  } catch(e) {
+    res.style.color = 'var(--red)';
+    res.textContent = '❌ Ошибка: ' + e.message;
+    btn.disabled = false; btn.textContent = 'Отправить';
+  }
+}
+
+// ── Delete user from account (admin only) ──
+async function deleteUserFromAccount(uid){
+  const u = USERS[uid];
+  if(!u) return;
+  if(!confirm(`Удалить пользователя "${u.name}" из аккаунта?`)) return;
+  try {
+    const metaApp = _getMetaApp();
+    await metaApp.database().ref('finflow_meta/' + _session.accId + '/users/' + uid).remove();
+    // Remove from finflow_users if uid is Firebase Auth uid
+    if(u.uid){ await metaApp.database().ref('finflow_users/' + u.uid).remove(); }
+    showToast('✅ Пользователь удалён');
+    // Update local USERS
+    delete USERS[uid];
+    renderUserSettings();
+    renderUserSwitcher();
+  } catch(e) {
+    showToast('❌ Ошибка: ' + e.message);
+  }
 }
 function previewUserCard(uid){
   const nameEl=document.getElementById('uname_'+uid), colorEl=document.getElementById('ucolor_'+uid);
