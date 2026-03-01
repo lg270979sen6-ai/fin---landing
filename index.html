@@ -1033,14 +1033,13 @@ function initFirebase(url, room){
   }
   // Reuse ff_meta app — it's already authenticated anonymously by loadAccounts
   // This avoids creating a new app that needs to re-authenticate
+  // Always use named 'ff_meta' app for data — NEVER touch default app (needed for Auth session)
   try{ fbApp = firebase.app('ff_meta'); }catch(e){
-    // ff_meta not available — create it without deleting default app (keeps Auth session)
-    const fbCfg = url === FB_URL_PRO ? FB_CONFIG : Object.assign({}, FB_CONFIG, {databaseURL: url});
+    const fbCfg = url === FB_URL_PRO
+      ? Object.assign({}, FB_CONFIG)
+      : Object.assign({}, FB_CONFIG, {databaseURL: url});
     try{ fbApp = firebase.initializeApp(fbCfg, 'ff_meta'); }
-    catch(e2){
-      try{ fbApp = firebase.app('ff_meta'); }
-      catch(e3){ fbApp = firebase.app(); }
-    }
+    catch(e2){ try{ fbApp = firebase.app('ff_meta'); } catch(e3){ fbApp = firebase.app(); } }
   }
   fbDb = fbApp.database();
   fbRoom = room;
@@ -2304,7 +2303,9 @@ function checkSession(){
     if(!user){ console.log('No user → landing'); showGoToLanding(); return; }
 
     try {
-      const db = authApp.database();
+      // Use ff_meta for database reads, default app only for auth
+      const metaApp = _getMetaApp();
+      const db = metaApp.database();
       console.log('Reading finflow_users/' + user.uid);
       const snap = await db.ref('finflow_users/' + user.uid).once('value');
       const userIndex = snap.val();
